@@ -33,6 +33,7 @@ pre_process <- function(df) {
                           NA, df$build_year)
   df$full_sq <- ifelse(df$full_sq > 2000, NA, df$full_sq)
   df$num_room <- ifelse(df$num_room == 0, NA, df$num_room)
+  df$max_floor <- ifelse(df$max_floor < 1 | df$max_floor > 57, NA, df$max_floor)
   
   # Assert correct
   #assert_that(is.na(df$state[10090]))
@@ -63,10 +64,9 @@ pre_process <- function(df) {
                          function(x) ifelse(x == "yes", 1, 
                                             ifelse(x == "no", 0, NA)))
   
-
-  # Handle missing numerical values
-
-  # Median imputation?
+  # Drop timestamp, id and price_doc columns (if exists)
+  df <- df %>% select(one_of(setdiff(names(df), c("id", "timestamp", "price_doc"))))
+  
   
   # Function to trim extreme values?
   

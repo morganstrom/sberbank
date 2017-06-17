@@ -7,6 +7,7 @@ library(Matrix)
 
 # Set environment variables
 setwd("~/gitarchives/sberbank/R")
+source("00_pre_process.R")
 
 # Load data
 train <- read_csv("../data/train.csv")
@@ -29,21 +30,42 @@ map_prediction <- function(y_hat) {
 #                      map_prediction(get_outcome_vector(train)))
 
 # Get list of one hot encoders for categorical variables, based on training data
+train_clean <- pre_process(train)
+
 source("get_one_hot_encoder.R")
 cat_var <- c("state", "material", "product_type", "sub_area", "ecology")
-ohe <- sapply(train[,cat_var], get_one_hot_encoder)
+ohe <- sapply(train_clean[,cat_var], get_one_hot_encoder)
+
+# Get list of imputer functions for numerical variables, based on training data
+# Median is default function
+get_imputer <- function(x, f = median) {
+  val <- f(x, na.rm = TRUE)
+  
+  function(x) {
+    x[is.na(x)] <- val
+    x
+  }
+}
+
+imputer <- sapply(train_clean, get_imputer, f = median)
 
 
 # Function that extracts a feature matrix from df
-get_feature_matrix <- function(df) {
+get_feature_matrix <- function(df, impute = FALSE) {
   
   # Apply pre processing
-  source("00_pre_process.R")
   df <- pre_process(df)
+  
+  # Impute missing variables
+  if (impute) {
+    for (c in names(imputer)) {
+      df[, c] <- imputer[[c]](df[, c])
+    }
+  }
 
   # Apply one hot encoders
   for (c in names(ohe)) {
-    df <- cbind(df, ohe[[c]](df[[c]], c))
+    df <- cbind(df, ohe[[c]](df[, c], c))
   }
   # Remove old variables
   df <- df %>%
@@ -54,10 +76,6 @@ get_feature_matrix <- function(df) {
   # building age 
   
   # Select relevant features
-  
-  # Drop timestamp, id and price_doc columns (if exists)
-  df <- df %>% select(one_of(setdiff(names(df), c("id", "timestamp", "price_doc"))))
-  
   
   # Function to normalize numerical values
   normalize <- function(x) {
