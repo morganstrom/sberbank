@@ -3,3 +3,10 @@
 
 # Checkpoints
 .ipynb_checkpoints/*
+
+# R history and data files
+*.RData
+*.RHistory
+
+# Submission file
+submission/*
